@@ -1,4 +1,5 @@
-BasedOnStyle: LLVM
+BasedOnStyle: Google
+BreakBeforeBraces: Allman
+AllowShortFunctionsOnASingleLine: false
 IndentWidth: 4
-BreakBeforeBraces: Attach
 ColumnLimit: 110
