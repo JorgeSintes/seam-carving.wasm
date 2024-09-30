@@ -91,4 +91,5 @@ int main()
     stbi_write_jpg("new_img.jpg", width, height, 1, new_img, 90);
     stbi_image_free(img);
     stbi_image_free(gr_img);
+    stbi_image_free(new_img);
 }
