@@ -1,5 +1,6 @@
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <limits.h>
 #include <math.h>
 #include <stdint.h>
 
@@ -13,20 +14,14 @@ float unit_kernel[] = {
 float Gx[] = {-0.25, 0, 0.25, -0.5, 0, 0.5, -0.25, 0, 0.25};
 float Gy[] = {-0.25, -0.5, -0.25, 0, 0, 0, 0.25, 0.5, 0.25};
 
-float *padded_conv(uint8_t *img, float *kernel, int height, int width)
-{
+float *padded_conv(uint8_t *img, float *kernel, int height, int width) {
     float *new_img = malloc(height * width * sizeof(float));
-    for (int y = 0; y < height; y++)
-    {
-        for (int x = 0; x < width; x++)
-        {
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
             float result = 0;
-            for (int j = -1; j <= 1; j++)
-            {
-                for (int i = -1; i <= 1; i++)
-                {
-                    if ((x + i) >= 0 && (x + i) < width && (y + j) >= 0 && (y + j) < height)
-                    {
+            for (int j = -1; j <= 1; j++) {
+                for (int i = -1; i <= 1; i++) {
+                    if ((x + i) >= 0 && (x + i) < width && (y + j) >= 0 && (y + j) < height) {
                         result += img[(y + i) * width + (x + j)] * kernel[(i + 1) * 3 + j + 1];
                     }
                 }
@@ -37,8 +32,7 @@ float *padded_conv(uint8_t *img, float *kernel, int height, int width)
     return new_img;
 }
 
-uint8_t clamp(float x)
-{
+uint8_t clamp(float x) {
     if (x > 255)
         return 255;
     else if (x < 0)
@@ -46,28 +40,22 @@ uint8_t clamp(float x)
     return x;
 }
 
-uint8_t *sobel_filter(uint8_t *img, int height, int width)
-{
+uint8_t *sobel_filter(uint8_t *img, int height, int width) {
     uint8_t *result = malloc(height * width);
     float *Sx = padded_conv(img, Gx, height, width);
     float *Sy = padded_conv(img, Gy, height, width);
-    for (int y = 0; y < height; y++)
-    {
-        for (int x = 0; x < width; x++)
-        {
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
             result[y * width + x] = clamp(sqrt(pow(Sx[y * width + x], 2) + pow(Sy[y * width + x], 2)));
         }
     }
     return result;
 }
 
-uint8_t *grayscale_img(uint8_t *img, int height, int width, int n_ch)
-{
+uint8_t *grayscale_img(uint8_t *img, int height, int width, int n_ch) {
     uint8_t *gr_img = malloc(height * width);
-    for (int y = 0; y < height; y++)
-    {
-        for (int x = 0; x < width; x++)
-        {
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
             int i = y * n_ch;
             int j = x * n_ch;
             gr_img[y * width + x] =
@@ -78,8 +66,36 @@ uint8_t *grayscale_img(uint8_t *img, int height, int width, int n_ch)
     return gr_img;
 }
 
-int main()
-{
+uint32_t find_minimum_step(uint32_t *cost_matrix, int i, int j, int height, int width) {
+    uint32_t min = 4294967295U;
+    for (int idx = j - 1; idx <= j + 1; idx++) {
+        if (cost_matrix[(i - 1) * width + idx] < min) {
+            min = cost_matrix[(i - 1) * width + idx];
+        }
+    }
+    return min;
+}
+
+uint8_t *compute_seam(uint8_t *img, int height, int width) {
+    uint32_t *cost_matrix = malloc(height * width);
+    // Fill first row
+    for (int j = 0; j < width; j++) {
+        cost_matrix[j] = img[j];
+    }
+
+    // Calculate cost matrix
+    for (int i = 1; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+            cost_matrix[i * width + j] =
+                find_minimum_step(cost_matrix, i, j, height, width) + img[i * width + j];
+        }
+    }
+
+    // Backtrack
+    uint32_t seam[height];
+}
+
+int main() {
     uint8_t *img, *gr_img, *new_img;
     int width, height, channels;
 

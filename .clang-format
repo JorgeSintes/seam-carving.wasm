@@ -1,5 +1,5 @@
-BasedOnStyle: Google
-BreakBeforeBraces: Allman
-AllowShortFunctionsOnASingleLine: false
+# BasedOnStyle: Google
+# BreakBeforeBraces: Allman
+# AllowShortFunctionsOnASingleLine: false
 IndentWidth: 4
 ColumnLimit: 110
