@@ -10,8 +10,8 @@
 float unit_kernel[] = {
     0, 0, 0, 0, 1, 0, 0, 0, 0,
 };
-float Gx[] = {-0.25, -0.5, -0.25, 0, 0, 0, 0.25, 0.5, 0.25};
-float Gy[] = {-0.25, 0, 0.25, -0.5, 0, 0.5, -0.25, 0, 0.25};
+float Gx[] = {-0.25, 0, 0.25, -0.5, 0, 0.5, -0.25, 0, 0.25};
+float Gy[] = {-0.25, -0.5, -0.25, 0, 0, 0, 0.25, 0.5, 0.25};
 
 float *padded_conv(uint8_t *img, float *kernel, int height, int width)
 {
@@ -87,8 +87,10 @@ int main()
     printf("Height: %d. Width: %d. Channels: %d\n", height, width, channels);
     gr_img = grayscale_img(img, height, width, channels);
     new_img = sobel_filter(gr_img, height, width);
-    stbi_write_jpg("gr_img.jpg", width, height, 1, gr_img, 90);
-    stbi_write_jpg("new_img.jpg", width, height, 1, new_img, 90);
+
+    stbi_write_jpg("img_gr.jpg", width, height, 1, gr_img, 90);
+    stbi_write_jpg("img_sobel.jpg", width, height, 1, new_img, 90);
+
     stbi_image_free(img);
     stbi_image_free(gr_img);
     stbi_image_free(new_img);

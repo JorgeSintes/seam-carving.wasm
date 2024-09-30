@@ -1,2 +1,4 @@
 *.bin
 *.wasm
+img_*.jpg
+.vscode
