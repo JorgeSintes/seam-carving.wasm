@@ -76,8 +76,8 @@ uint32_t find_minimum_step(uint32_t *cost_matrix, int i, int j, int height, int 
     return min;
 }
 
-uint8_t *compute_seam(uint8_t *img, int height, int width) {
-    uint32_t *cost_matrix = malloc(height * width);
+uint32_t *compute_seam(uint8_t *img, int height, int width) {
+    uint32_t cost_matrix[height * width];
     // Fill first row
     for (int j = 0; j < width; j++) {
         cost_matrix[j] = img[j];
@@ -91,23 +91,85 @@ uint8_t *compute_seam(uint8_t *img, int height, int width) {
         }
     }
 
+    uint32_t *seam = malloc(height * sizeof(uint32_t));
+    // Find initial min
+    uint32_t min = 4294967295U;
+    int min_idx = -1;
+    for (int j = 0; j < width; j++) {
+        if (cost_matrix[(height - 1) * width + j] < min) {
+            min = cost_matrix[(height - 1) * width + j];
+            min_idx = j;
+        }
+    }
+    seam[height - 1] = min_idx;
+    // printf("seam[%d]: %d\n", height - 1, min_idx);
+
     // Backtrack
-    uint32_t seam[height];
+    for (int i = height - 2; i >= 0; i--) {
+        uint32_t min = 4294967295U;
+        uint32_t upper_lim = min_idx + 1; // Need this since min_idx is being rewritten inside
+        for (int j = min_idx - 1; j <= upper_lim; j++) {
+            if (j >= 0 && j < width) {
+                if (cost_matrix[i * width + j] < min) {
+                    min = cost_matrix[i * width + j];
+                    min_idx = j;
+                }
+            }
+        }
+        if (min_idx == -1) {
+            printf("ERROR: Cost matrix is wrongly calculated. Couldn't find min_idx in row %d", i);
+        }
+        // printf("seam[%d]: %d\n", i, min_idx);
+        seam[i] = min_idx;
+    }
+
+    return seam;
+}
+
+void show_seam(uint8_t *img, uint32_t *seam, int height, int width) {
+    for (int i = 0; i < height; i++) {
+        img[i * width + seam[i]] = 255;
+    }
+}
+
+uint8_t *cut_seam(uint8_t *img, uint32_t *seam, int height, int width, int n_ch) {
+    uint8_t *new_img = malloc(height * (width - 1) * n_ch);
+    for (int y = 0; y < height; y++) {
+        for (int x = 0, offseted_x = 0; x < width - 1; x++, offseted_x++) {
+            if (x == seam[y]) {
+                offseted_x++;
+            }
+            for (int c = 0; c < n_ch; c++) {
+                new_img[(y * (width - 1) + x) * n_ch + c] = img[(y * width + offseted_x) * n_ch + c];
+            }
+            // printf("row %d. Copied pixel %d from %d\n", y, x, offseted_x);
+        }
+    }
+    return new_img;
 }
 
 int main() {
-    uint8_t *img, *gr_img, *new_img;
+    uint8_t *img, *img_gr, *img_sobel, *img_cut;
+    uint32_t *seam;
     int width, height, channels;
 
     img = stbi_load("input.jpg", &width, &height, &channels, 0);
     printf("Height: %d. Width: %d. Channels: %d\n", height, width, channels);
-    gr_img = grayscale_img(img, height, width, channels);
-    new_img = sobel_filter(gr_img, height, width);
+    img_gr = grayscale_img(img, height, width, channels);
+    img_sobel = sobel_filter(img_gr, height, width);
+    seam = compute_seam(img_sobel, height, width);
 
-    stbi_write_jpg("img_gr.jpg", width, height, 1, gr_img, 90);
-    stbi_write_jpg("img_sobel.jpg", width, height, 1, new_img, 90);
+    stbi_write_jpg("img_gr.jpg", width, height, 1, img_gr, 90);
+    stbi_write_jpg("img_sobel.jpg", width, height, 1, img_sobel, 90);
+
+    show_seam(img_gr, seam, height, width);
+    stbi_write_jpg("img_gr_seam.jpg", width, height, 1, img_gr, 90);
+
+    img_cut = cut_seam(img, seam, height, width, 3);
+    stbi_write_jpg("img_cut.jpg", width - 1, height, 3, img_cut, 90);
 
     stbi_image_free(img);
-    stbi_image_free(gr_img);
-    stbi_image_free(new_img);
+    stbi_image_free(img_gr);
+    stbi_image_free(img_sobel);
+    free(seam);
 }
