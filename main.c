@@ -15,15 +15,33 @@ float Gx[] = {-0.25, 0, 0.25, -0.5, 0, 0.5, -0.25, 0, 0.25};
 float Gy[] = {-0.25, -0.5, -0.25, 0, 0, 0, 0.25, 0.5, 0.25};
 
 float *padded_conv(uint8_t *img, float *kernel, int height, int width) {
+    uint8_t pixel_val;
     float *new_img = malloc(height * width * sizeof(float));
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
             float result = 0;
             for (int j = -1; j <= 1; j++) {
                 for (int i = -1; i <= 1; i++) {
-                    if ((x + i) >= 0 && (x + i) < width && (y + j) >= 0 && (y + j) < height) {
-                        result += img[(y + i) * width + (x + j)] * kernel[(i + 1) * 3 + j + 1];
-                    }
+                    if (x + j <= 0 && y + i <= 0) // top-left corner
+                        pixel_val = img[0];
+                    else if (x + j == width && y + i <= 0) // top-right corner
+                        pixel_val = img[width];
+                    else if (x + j <= 0 && y + i == height) // bottom-left corner
+                        pixel_val = img[(height - 1) * width];
+                    else if (x + j == width && y + i == height) // bottom-right corner
+                        pixel_val = img[(height - 1) * width + width - 1];
+                    else if (x + j <= 0) // left edge
+                        pixel_val = img[(y + i) * width + (x + j + 1)];
+                    else if (x + j == width) // right edge
+                        pixel_val = img[(y + i) * width + (x + j - 1)];
+                    else if (y + i <= 0) // top edge
+                        pixel_val = img[(y + i + 1) * width + (x + j)];
+                    else if (y + i == height) // bottom edge
+                        pixel_val = img[(y + i - 1) * width + (x + j)];
+                    else
+                        pixel_val = img[(y + i) * width + (x + j)];
+
+                    result += pixel_val * kernel[(i + 1) * 3 + j + 1];
                 }
             }
             new_img[y * width + x] = result;
@@ -162,15 +180,21 @@ uint8_t *carve_image(uint8_t *input_img, int height, int width, int n_ch, int ne
 }
 
 int main() {
-    uint8_t *img, *img_gr, *img_sobel, *img_cut;
-    uint32_t *seam;
+    uint8_t *img;
     int width, height, channels;
 
     img = stbi_load("input.jpg", &width, &height, &channels, 0);
-    int new_width = width - 60;
 
-    printf("Height: %d. Width: %d. Channels: %d. New width: %d\n", height, width, channels, new_width);
+    // uint8_t *img_gr = grayscale_img(img, height, width, channels);
+    // uint8_t *img_sobel = sobel_filter(img_gr, height, width);
+    // stbi_write_jpg("img_gr.jpg", width, height, 1, img_gr, 90);
+    // stbi_write_jpg("img_sobel.jpg", width, height, 1, img_sobel, 90);
 
-    img_cut = carve_image(img, height, width, channels, new_width);
-    stbi_write_jpg("img_cut.jpg", new_width, height, 3, img_cut, 90);
+    int new_width = width - 80;
+    uint8_t *img_output = carve_image(img, height, width, channels, new_width);
+
+    // uint8_t *img_gr = grayscale_img(img_output, height, new_width, 3);
+    // uint8_t *img_sobel = sobel_filter(img_gr, height, new_width);
+    stbi_write_jpg("output.jpg", new_width, height, 3, img_output, 90);
+    // stbi_write_jpg("img_sobel.jpg", new_width, height, 1, img_sobel, 90);
 }
