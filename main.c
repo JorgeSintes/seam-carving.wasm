@@ -148,28 +148,29 @@ uint8_t *cut_seam(uint8_t *img, uint32_t *seam, int height, int width, int n_ch)
     return new_img;
 }
 
+uint8_t *carve_image(uint8_t *input_img, int height, int width, int n_ch, int new_width) {
+    uint8_t *img, *img_gr, *img_sobel, *img_cut;
+    uint32_t *seam;
+    img = input_img;
+    for (int w = width; w > new_width; w--) {
+        img_gr = grayscale_img(img, height, w, n_ch);
+        img_sobel = sobel_filter(img_gr, height, w);
+        seam = compute_seam(img_sobel, height, w);
+        img = cut_seam(img, seam, height, w, 3);
+    }
+    return img;
+}
+
 int main() {
     uint8_t *img, *img_gr, *img_sobel, *img_cut;
     uint32_t *seam;
     int width, height, channels;
 
     img = stbi_load("input.jpg", &width, &height, &channels, 0);
-    printf("Height: %d. Width: %d. Channels: %d\n", height, width, channels);
-    img_gr = grayscale_img(img, height, width, channels);
-    img_sobel = sobel_filter(img_gr, height, width);
-    seam = compute_seam(img_sobel, height, width);
+    int new_width = width - 60;
 
-    stbi_write_jpg("img_gr.jpg", width, height, 1, img_gr, 90);
-    stbi_write_jpg("img_sobel.jpg", width, height, 1, img_sobel, 90);
+    printf("Height: %d. Width: %d. Channels: %d. New width: %d\n", height, width, channels, new_width);
 
-    show_seam(img_gr, seam, height, width);
-    stbi_write_jpg("img_gr_seam.jpg", width, height, 1, img_gr, 90);
-
-    img_cut = cut_seam(img, seam, height, width, 3);
-    stbi_write_jpg("img_cut.jpg", width - 1, height, 3, img_cut, 90);
-
-    stbi_image_free(img);
-    stbi_image_free(img_gr);
-    stbi_image_free(img_sobel);
-    free(seam);
+    img_cut = carve_image(img, height, width, channels, new_width);
+    stbi_write_jpg("img_cut.jpg", new_width, height, 3, img_cut, 90);
 }
